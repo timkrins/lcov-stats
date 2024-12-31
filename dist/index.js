@@ -147,12 +147,9 @@
 var _commander = require("commander");
 var _zod = require("zod");
 var _fileFilter = require("./fileFilter");
-var _generateFileStats = require("./generateFileStats");
-var _generateTotalStat = require("./generateTotalStat");
-var _parse = require("./parse");
-var _readFileToString = require("./readFileToString");
+var _output = require("./output");
+var _readAndParse = require("./readAndParse");
 var _thresholdCheck = require("./thresholdCheck");
-var _writeStringToFile = require("./writeStringToFile");
 (0, _commander.program).name('lcov-stats').description('CLI to produce JSON stats from LCOV input').version('1.0.0');
 (0, _commander.program).requiredOption('-i, --input <filename>', 'filename for lcov info input', 'lcov.info').option('-o, --output <filename>', 'filename for JSON output. stdout will be used if no output file is given.').option('--diff-with <filename>', 'filename for another lcov info input to produce a diff calculation').option('--pretty', 'use pretty JSON output').option('--fail-percent <threshold>', 'set failed exit code if a percentage threshold is exceeded');
 (0, _commander.program).parse();
@@ -165,31 +162,7 @@ const optionsSchema = (0, _zod.z).object({
 });
 const options = optionsSchema.parse((0, _commander.program).opts());
 const ignoreFilter = (0, _fileFilter.fileFilter)([]);
-const readAndParse = async (filename)=>{
-    const lcovInputContent = (0, _readFileToString.readFileToString)(filename);
-    const lcovParsed = await (0, _parse.parse)(lcovInputContent);
-    if (lcovParsed) {
-        const filteredLcov = lcovParsed.filter((p)=>!ignoreFilter(p.file));
-        const fileStats = (0, _generateFileStats.generateFileStats)(filteredLcov);
-        const totalStat = (0, _generateTotalStat.generateTotalStat)(fileStats);
-        return totalStat;
-    }
-};
-const toJson = (content)=>{
-    if (options.pretty) return JSON.stringify(content, null, 2);
-    return JSON.stringify(content);
-};
-const output = async (content)=>{
-    const stringContent = toJson(content);
-    if (options.output) // write to file
-    (0, _writeStringToFile.writeStringToFile)(options.output, stringContent);
-    else await new Promise((resolve, reject)=>{
-        process.stdout.write(stringContent + '\n', (err)=>{
-            if (err) reject(err);
-            resolve();
-        });
-    });
-};
+const readAndParse = (0, _readAndParse.readerParser)(ignoreFilter);
 (async ()=>{
     if (options.input) {
         const primaryResult = await readAndParse(options.input);
@@ -202,20 +175,20 @@ const output = async (content)=>{
                         hit: secondaryResult.hit - primaryResult.hit,
                         percent: secondaryResult.percent - primaryResult.percent
                     };
-                    await output({
+                    await (0, _output.output)({
                         diff
-                    });
+                    }, options.output, options.pretty);
                     (0, _thresholdCheck.thresholdCheck)(options.failPercent, diff);
                 }
             } else {
-                await output(primaryResult);
+                await (0, _output.output)(primaryResult, options.output, options.pretty);
                 (0, _thresholdCheck.thresholdCheck)(options.failPercent, primaryResult);
             }
         }
     }
 })();
 
-},{"commander":"2JlDH","zod":"8sluP","./fileFilter":"1CuFs","./generateFileStats":"8l1R5","./generateTotalStat":"bmPaZ","./parse":"6TDMF","./readFileToString":"fmODz","./thresholdCheck":"acq0C","./writeStringToFile":"86LQJ"}],"2JlDH":[function(require,module,exports,__globalThis) {
+},{"commander":"2JlDH","zod":"8sluP","./fileFilter":"1CuFs","./output":"f7Z1Z","./readAndParse":"b2Dzo","./thresholdCheck":"acq0C"}],"2JlDH":[function(require,module,exports,__globalThis) {
 const { Argument } = require("4be99e8fb4db63de");
 const { Command } = require("26d11cd4db8fc79b");
 const { CommanderError, InvalidArgumentError } = require("f3119feb7aec3ca9");
@@ -7474,7 +7447,64 @@ function fileFilter(filters) {
     };
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"8l1R5":[function(require,module,exports,__globalThis) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"f7Z1Z":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "output", ()=>output);
+var _toJson = require("./toJson");
+var _writeStringToFile = require("./writeStringToFile");
+const output = async (content, outputFile, pretty)=>{
+    const stringContent = (0, _toJson.toJson)(content, pretty);
+    if (outputFile) (0, _writeStringToFile.writeStringToFile)(outputFile, stringContent);
+    else await new Promise((resolve, reject)=>{
+        process.stdout.write(stringContent + '\n', (err)=>{
+            if (err) reject(err);
+            resolve();
+        });
+    });
+};
+
+},{"./toJson":"enVM9","./writeStringToFile":"86LQJ","@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"enVM9":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "toJson", ()=>toJson);
+const toJson = (content, pretty)=>{
+    if (pretty) return JSON.stringify(content, null, 2);
+    return JSON.stringify(content);
+};
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"86LQJ":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "writeStringToFile", ()=>writeStringToFile);
+var _fs = require("fs");
+var _path = require("path");
+function writeStringToFile(filename, content) {
+    return (0, _fs.writeFileSync)((0, _path.resolve)(filename), content);
+}
+
+},{"fs":"fs","path":"path","@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"b2Dzo":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "readerParser", ()=>readerParser);
+var _generateFileStats = require("./generateFileStats");
+var _generateTotalStat = require("./generateTotalStat");
+var _parse = require("./parse");
+var _readFileToString = require("./readFileToString");
+function readerParser(ignoreFilter) {
+    return async function(filename) {
+        const lcovInputContent = (0, _readFileToString.readFileToString)(filename);
+        let lcovParsed = await (0, _parse.parse)(lcovInputContent);
+        if (lcovParsed) {
+            if (ignoreFilter) lcovParsed = lcovParsed.filter((p)=>!ignoreFilter(p.file));
+            const fileStats = (0, _generateFileStats.generateFileStats)(lcovParsed);
+            const totalStat = (0, _generateTotalStat.generateTotalStat)(fileStats);
+            return totalStat;
+        }
+    };
+}
+
+},{"./generateFileStats":"8l1R5","./generateTotalStat":"bmPaZ","./parse":"6TDMF","./readFileToString":"fmODz","@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"8l1R5":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "generateFileStats", ()=>generateFileStats);
@@ -7659,15 +7689,5 @@ function thresholdCheck(failThreshold, stat) {
     }
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"86LQJ":[function(require,module,exports,__globalThis) {
-var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "writeStringToFile", ()=>writeStringToFile);
-var _fs = require("fs");
-var _path = require("path");
-function writeStringToFile(filename, content) {
-    return (0, _fs.writeFileSync)((0, _path.resolve)(filename), content);
-}
-
-},{"fs":"fs","path":"path","@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}]},["1QHdX"], "1QHdX", "parcelRequire94c2")
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}]},["1QHdX"], "1QHdX", "parcelRequire94c2")
 

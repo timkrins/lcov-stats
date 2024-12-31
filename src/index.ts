@@ -3,12 +3,10 @@
 import { program } from 'commander';
 import { z } from 'zod';
 import { fileFilter } from './fileFilter';
-import { generateFileStats } from './generateFileStats';
-import { generateTotalStat, TotalStat } from './generateTotalStat';
-import { parse } from './parse';
-import { readFileToString } from './readFileToString';
+import { TotalStat } from './generateTotalStat';
+import { output } from './output';
+import { readerParser } from './readAndParse';
 import { thresholdCheck } from './thresholdCheck';
-import { writeStringToFile } from './writeStringToFile';
 
 program
   .name('lcov-stats')
@@ -48,42 +46,7 @@ const optionsSchema = z.object({
 const options = optionsSchema.parse(program.opts());
 
 const ignoreFilter = fileFilter([]);
-
-const readAndParse = async (filename: string) => {
-  const lcovInputContent = readFileToString(filename);
-  const lcovParsed = await parse(lcovInputContent);
-  if (lcovParsed) {
-    const filteredLcov = lcovParsed.filter((p) => !ignoreFilter(p.file));
-    const fileStats = generateFileStats(filteredLcov);
-    const totalStat = generateTotalStat(fileStats);
-    return totalStat;
-  }
-};
-
-const toJson = (content: any) => {
-  if (options.pretty) {
-    return JSON.stringify(content, null, 2);
-  }
-
-  return JSON.stringify(content);
-};
-
-const output = async (content: any) => {
-  const stringContent = toJson(content);
-
-  if (options.output) {
-    // write to file
-    writeStringToFile(options.output, stringContent);
-  } else {
-    await new Promise<void>((resolve, reject) => {
-      process.stdout.write(stringContent + '\n', (err) => {
-        if (err) reject(err);
-
-        resolve();
-      });
-    });
-  }
-};
+const readAndParse = readerParser(ignoreFilter);
 
 (async () => {
   if (options.input) {
@@ -97,11 +60,11 @@ const output = async (content: any) => {
             hit: secondaryResult.hit - primaryResult.hit,
             percent: secondaryResult.percent - primaryResult.percent,
           };
-          await output({ diff });
+          await output({ diff }, options.output, options.pretty);
           thresholdCheck(options.failPercent, diff);
         }
       } else {
-        await output(primaryResult);
+        await output(primaryResult, options.output, options.pretty);
         thresholdCheck(options.failPercent, primaryResult);
       }
     }
