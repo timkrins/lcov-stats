@@ -1,0 +1,17 @@
+TN:
+SF:example.ts
+FN:1,covered
+FN:6,uncovered
+FNF:2
+FNH:1
+FNDA:1,covered
+FNDA:0,uncovered
+DA:1,1
+DA:3,1
+DA:6,1
+DA:8,0
+LF:4
+LH:3
+BRF:0
+BRH:0
+end_of_record

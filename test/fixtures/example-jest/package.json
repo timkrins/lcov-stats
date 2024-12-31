@@ -1,0 +1,14 @@
+{
+  "name": "example-repo",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "coverage": "jest --coverage && cp ./coverage/lcov.info lcov.info"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2"
+  }
+}
