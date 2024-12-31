@@ -5,6 +5,7 @@ const config: Config = {
   transform: {
     '^.+\\.(ts|tsx)?$': 'ts-jest',
   },
+  modulePathIgnorePatterns: ['test/fixtures'],
 };
 
 export default config;
