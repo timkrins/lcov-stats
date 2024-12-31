@@ -1,0 +1,23 @@
+{
+  "name": "lcov-stats",
+  "version": "1.0.0",
+  "source": "src/index.ts",
+  "repository": "git@github.com:timkrins/lcov-stats.git",
+  "author": "Tim Krins <timkrins@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "build": "parcel build --no-source-maps"
+  },
+  "engines": {
+    "node": ">= 14"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "parcel": "^2.13.3",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "commander": "^13.0.0"
+  }
+}
