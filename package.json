@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "source": "src/index.ts",
   "main": "dist/index.js",
+  "bin": "dist/index.js",
   "repository": "git@github.com:timkrins/lcov-stats.git",
   "author": "Tim Krins <timkrins@gmail.com>",
   "license": "MIT",
