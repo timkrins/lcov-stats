@@ -154,7 +154,7 @@ var _readFileToString = require("./readFileToString");
 var _thresholdCheck = require("./thresholdCheck");
 var _writeStringToFile = require("./writeStringToFile");
 (0, _commander.program).name('lcov-stats').description('CLI to produce JSON stats from LCOV input').version('1.0.0');
-(0, _commander.program).requiredOption('-i, --input <filename>', 'filename for input', 'lcov.info').option('-o, --output <filename>', 'filename for output. stdout will be used if no output is defined.').option('--diff-with <filename>', 'filename for input to produce a diff calculation').option('--pretty', 'use pretty output').option('--fail-percent <threshold>', 'fail command at a percentage threshold');
+(0, _commander.program).requiredOption('-i, --input <filename>', 'filename for lcov info input', 'lcov.info').option('-o, --output <filename>', 'filename for JSON output. stdout will be used if no output file is given.').option('--diff-with <filename>', 'filename for another lcov info input to produce a diff calculation').option('--pretty', 'use pretty JSON output').option('--fail-percent <threshold>', 'set failed exit code if a percentage threshold is exceeded');
 (0, _commander.program).parse();
 const optionsSchema = (0, _zod.z).object({
     input: (0, _zod.z).string(),

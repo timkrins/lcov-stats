@@ -16,19 +16,23 @@ program
   .version('1.0.0');
 
 program
-  .requiredOption('-i, --input <filename>', 'filename for input', 'lcov.info')
+  .requiredOption(
+    '-i, --input <filename>',
+    'filename for lcov info input',
+    'lcov.info'
+  )
   .option(
     '-o, --output <filename>',
-    'filename for output. stdout will be used if no output is defined.'
+    'filename for JSON output. stdout will be used if no output file is given.'
   )
   .option(
     '--diff-with <filename>',
-    'filename for input to produce a diff calculation'
+    'filename for another lcov info input to produce a diff calculation'
   )
-  .option('--pretty', 'use pretty output')
+  .option('--pretty', 'use pretty JSON output')
   .option(
     '--fail-percent <threshold>',
-    'fail command at a percentage threshold'
+    'set failed exit code if a percentage threshold is exceeded'
   );
 
 program.parse();
