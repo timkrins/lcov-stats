@@ -2,14 +2,14 @@ import { FileStat } from './generateFileStats';
 import { TotalStat } from './generateTotalStat';
 
 export function thresholdCheck(
-  failThreshold: number | null,
+  failThreshold: number | undefined,
   stat: TotalStat | FileStat
 ) {
-  if (failThreshold != null) {
+  if (typeof failThreshold != 'undefined') {
     const shouldFail = stat.percent < failThreshold;
     if (shouldFail) {
       process.exitCode = 1;
-      console.error('thresholdCheck has failed');
+      console.error(`❌ Threshold check did not pass ${failThreshold}%`);
     }
   }
 }

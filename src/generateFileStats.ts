@@ -9,11 +9,11 @@ export interface FileStat {
 export function generateFileStats(lcovInput: LcovFile[]) {
   const results: Record<string, FileStat> = {};
   for (let index = 0; index < lcovInput.length; index++) {
-    const element = lcovInput[index];
-    const total = element.lines.details.length;
-    const hit = element.lines.details.filter((l) => l.hit > 0).length;
-    const percent = total > 0 ? hit / total : 1.0;
-    results[element.file] = { total, hit, percent };
+    const lcovFile = lcovInput[index];
+    const total = lcovFile.lines.details.length;
+    const hit = lcovFile.lines.details.filter((l) => l.hit > 0).length;
+    const percent = (total > 0 ? hit / total : 1.0) * 100.0;
+    results[lcovFile.file] = { total, hit, percent };
   }
   return results;
 }

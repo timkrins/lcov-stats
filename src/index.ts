@@ -43,10 +43,7 @@ const optionsSchema = z.object({
 
 const options = optionsSchema.parse(program.opts());
 
-const failPercentFloat =
-  options.failPercent != null ? options.failPercent / 100.0 : null;
-
-const ignoreFilter = fileFilter([/\.rake$/]);
+const ignoreFilter = fileFilter([]);
 
 const readAndParse = async (filename: string) => {
   const lcovInputContent = readFileToString(filename);
@@ -97,11 +94,11 @@ const output = async (content: any) => {
             percent: secondaryResult.percent - primaryResult.percent,
           };
           await output({ diff });
-          thresholdCheck(failPercentFloat, diff);
+          thresholdCheck(options.failPercent, diff);
         }
       } else {
         await output(primaryResult);
-        thresholdCheck(failPercentFloat, primaryResult);
+        thresholdCheck(options.failPercent, primaryResult);
       }
     }
   }

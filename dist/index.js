@@ -164,10 +164,7 @@ const optionsSchema = (0, _zod.z).object({
     failPercent: (0, _zod.z).coerce.number().optional()
 });
 const options = optionsSchema.parse((0, _commander.program).opts());
-const failPercentFloat = options.failPercent != null ? options.failPercent / 100.0 : null;
-const ignoreFilter = (0, _fileFilter.fileFilter)([
-    /\.rake$/
-]);
+const ignoreFilter = (0, _fileFilter.fileFilter)([]);
 const readAndParse = async (filename)=>{
     const lcovInputContent = (0, _readFileToString.readFileToString)(filename);
     const lcovParsed = await (0, _parse.parse)(lcovInputContent);
@@ -208,11 +205,11 @@ const output = async (content)=>{
                     await output({
                         diff
                     });
-                    (0, _thresholdCheck.thresholdCheck)(failPercentFloat, diff);
+                    (0, _thresholdCheck.thresholdCheck)(options.failPercent, diff);
                 }
             } else {
                 await output(primaryResult);
-                (0, _thresholdCheck.thresholdCheck)(failPercentFloat, primaryResult);
+                (0, _thresholdCheck.thresholdCheck)(options.failPercent, primaryResult);
             }
         }
     }
@@ -7469,8 +7466,8 @@ parcelHelpers.export(exports, "fileFilter", ()=>fileFilter);
 function fileFilter(filters) {
     return (filename)=>{
         for(let index = 0; index < filters.length; index++){
-            const element = filters[index];
-            const matches = filename.match(element);
+            const filter = filters[index];
+            const matches = filename.match(filter);
             if (matches) return true;
         }
         return false;
@@ -7484,11 +7481,11 @@ parcelHelpers.export(exports, "generateFileStats", ()=>generateFileStats);
 function generateFileStats(lcovInput) {
     const results = {};
     for(let index = 0; index < lcovInput.length; index++){
-        const element = lcovInput[index];
-        const total = element.lines.details.length;
-        const hit = element.lines.details.filter((l)=>l.hit > 0).length;
-        const percent = total > 0 ? hit / total : 1.0;
-        results[element.file] = {
+        const lcovFile = lcovInput[index];
+        const total = lcovFile.lines.details.length;
+        const hit = lcovFile.lines.details.filter((l)=>l.hit > 0).length;
+        const percent = (total > 0 ? hit / total : 1.0) * 100.0;
+        results[lcovFile.file] = {
             total,
             hit,
             percent
@@ -7505,7 +7502,7 @@ function generateTotalStat(fileStats) {
     const values = Object.values(fileStats);
     const total = values.reduce((prev, current)=>prev + current.total, 0);
     const hit = values.reduce((prev, current)=>prev + current.hit, 0);
-    const percent = total > 0 ? hit / total : 1.0;
+    const percent = (total > 0 ? hit / total : 1.0) * 100.0;
     return {
         total,
         hit,
@@ -7653,11 +7650,11 @@ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "thresholdCheck", ()=>thresholdCheck);
 function thresholdCheck(failThreshold, stat) {
-    if (failThreshold != null) {
+    if (typeof failThreshold != 'undefined') {
         const shouldFail = stat.percent < failThreshold;
         if (shouldFail) {
             process.exitCode = 1;
-            console.error('thresholdCheck has failed');
+            console.error(`\u{274C} Threshold check did not pass ${failThreshold}%`);
         }
     }
 }
