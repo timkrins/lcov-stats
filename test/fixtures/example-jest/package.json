@@ -4,7 +4,9 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "coverage": "jest --coverage && cp ./coverage/lcov.info lcov.info"
+    "generate": "yarn coverage && yarn coverage-secondary",
+    "coverage": "jest --coverage && cp ./coverage/lcov.info lcov.info",
+    "coverage-secondary": "UNCOVERED_ENV_SET=true jest --coverage && cp ./coverage/lcov.info secondary.lcov.info"
   },
   "devDependencies": {
     "jest": "^29.7.0",

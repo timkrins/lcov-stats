@@ -7,3 +7,8 @@ export function uncovered() {
   // this is uncovered
   return 'hello uncovered';
 }
+
+export function uncoveredIfEnvSet() {
+  // this is uncoveredIfEnvSet
+  return 'hello uncoveredIfEnvSet';
+}
