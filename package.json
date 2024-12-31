@@ -2,11 +2,12 @@
   "name": "lcov-stats",
   "version": "1.0.0",
   "source": "src/index.ts",
+  "main": "dist/index.js",
   "repository": "git@github.com:timkrins/lcov-stats.git",
   "author": "Tim Krins <timkrins@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "build": "parcel build --no-source-maps && chmod +x ./dist/index.js",
+    "build": "parcel build --no-source-maps --no-cache && chmod +x ./dist/index.js",
     "execute": "yarn build && ./dist/index.js",
     "test": "yarn jest"
   },
@@ -25,6 +26,7 @@
   },
   "dependencies": {
     "commander": "^13.0.0",
-    "lcov-parse": "^1.0.0"
+    "lcov-parse": "^1.0.0",
+    "zod": "^3.24.1"
   }
 }

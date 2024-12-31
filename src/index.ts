@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
 import { program } from 'commander';
+import { z } from 'zod';
 import { fileFilter } from './fileFilter';
 import { generateFileStats } from './generateFileStats';
 import { generateTotalStat, TotalStat } from './generateTotalStat';
 import { parse } from './parse';
 import { readFileToString } from './readFileToString';
+import { thresholdCheck } from './thresholdCheck';
 import { writeStringToFile } from './writeStringToFile';
 
 program
@@ -23,12 +25,26 @@ program
     '--diff-with <filename>',
     'filename for input to produce a diff calculation'
   )
-  .option('--pretty', 'use pretty output');
+  .option('--pretty', 'use pretty output')
+  .option(
+    '--fail-percent <threshold>',
+    'fail command at a percentage threshold'
+  );
 
 program.parse();
 
-const options = program.opts();
-// console.log({ options });
+const optionsSchema = z.object({
+  input: z.string(),
+  output: z.string().optional(),
+  diffWith: z.string().optional(),
+  pretty: z.boolean().optional(),
+  failPercent: z.coerce.number().optional(),
+});
+
+const options = optionsSchema.parse(program.opts());
+
+const failPercentFloat =
+  options.failPercent != null ? options.failPercent / 100.0 : null;
 
 const ignoreFilter = fileFilter([/\.rake$/]);
 
@@ -39,7 +55,6 @@ const readAndParse = async (filename: string) => {
     const filteredLcov = lcovParsed.filter((p) => !ignoreFilter(p.file));
     const fileStats = generateFileStats(filteredLcov);
     const totalStat = generateTotalStat(fileStats);
-    // console.log({ totalStat });
     return totalStat;
   }
 };
@@ -52,34 +67,41 @@ const toJson = (content: any) => {
   return JSON.stringify(content);
 };
 
-const output = (content: any) => {
+const output = async (content: any) => {
   const stringContent = toJson(content);
 
   if (options.output) {
     // write to file
     writeStringToFile(options.output, stringContent);
   } else {
-    process.stdout.write(stringContent + '\n');
+    await new Promise<void>((resolve, reject) => {
+      process.stdout.write(stringContent + '\n', (err) => {
+        if (err) reject(err);
+
+        resolve();
+      });
+    });
   }
 };
 
 (async () => {
   if (options.input) {
-    const inputResult = await readAndParse(options.input);
-    if (inputResult) {
+    const primaryResult = await readAndParse(options.input);
+    if (primaryResult) {
       if (options.diffWith) {
-        const a = inputResult;
-        const b = await readAndParse(options.diffWith);
-        if (b) {
+        const secondaryResult = await readAndParse(options.diffWith);
+        if (secondaryResult) {
           const diff: TotalStat = {
-            total: b.total - a.total,
-            hit: b.hit - a.hit,
-            percent: b.percent - a.percent,
+            total: secondaryResult.total - primaryResult.total,
+            hit: secondaryResult.hit - primaryResult.hit,
+            percent: secondaryResult.percent - primaryResult.percent,
           };
-          output({ diff });
+          await output({ diff });
+          thresholdCheck(failPercentFloat, diff);
         }
       } else {
-        output(inputResult);
+        await output(primaryResult);
+        thresholdCheck(failPercentFloat, primaryResult);
       }
     }
   }
