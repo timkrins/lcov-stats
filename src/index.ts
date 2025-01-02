@@ -24,8 +24,8 @@ program
     'filename for JSON output. stdout will be used if no output file is given.'
   )
   .option(
-    '--diff-with <filename>',
-    'filename for another lcov info input to produce a diff calculation'
+    '--compare-with <filename>',
+    'filename for another lcov info input to produce a comparison calculation'
   )
   .option('--pretty', 'use pretty JSON output')
   .option(
@@ -38,7 +38,7 @@ program.parse();
 const optionsSchema = z.object({
   input: z.string(),
   output: z.string().optional(),
-  diffWith: z.string().optional(),
+  compareWith: z.string().optional(),
   pretty: z.boolean().optional(),
   failPercent: z.coerce.number().optional(),
 });
@@ -52,16 +52,16 @@ const readAndParse = readerParser(ignoreFilter);
   if (options.input) {
     const primaryResult = await readAndParse(options.input);
     if (primaryResult) {
-      if (options.diffWith) {
-        const secondaryResult = await readAndParse(options.diffWith);
+      if (options.compareWith) {
+        const secondaryResult = await readAndParse(options.compareWith);
         if (secondaryResult) {
-          const diff: TotalStat = {
+          const comparison: TotalStat = {
             total: secondaryResult.total - primaryResult.total,
             hit: secondaryResult.hit - primaryResult.hit,
             percent: secondaryResult.percent - primaryResult.percent,
           };
-          await output({ diff }, options.output, options.pretty);
-          thresholdCheck(options.failPercent, diff);
+          await output({ comparison }, options.output, options.pretty);
+          thresholdCheck(options.failPercent, comparison);
         }
       } else {
         await output(primaryResult, options.output, options.pretty);

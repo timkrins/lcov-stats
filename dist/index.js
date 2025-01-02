@@ -151,12 +151,12 @@ var _output = require("./output");
 var _readAndParse = require("./readAndParse");
 var _thresholdCheck = require("./thresholdCheck");
 (0, _commander.program).name('lcov-stats').description('CLI to produce JSON stats from LCOV input').version('1.0.0');
-(0, _commander.program).requiredOption('-i, --input <filename>', 'filename for lcov info input', 'lcov.info').option('-o, --output <filename>', 'filename for JSON output. stdout will be used if no output file is given.').option('--diff-with <filename>', 'filename for another lcov info input to produce a diff calculation').option('--pretty', 'use pretty JSON output').option('--fail-percent <threshold>', 'set failed exit code if a percentage threshold is exceeded');
+(0, _commander.program).requiredOption('-i, --input <filename>', 'filename for lcov info input', 'lcov.info').option('-o, --output <filename>', 'filename for JSON output. stdout will be used if no output file is given.').option('--compare-with <filename>', 'filename for another lcov info input to produce a comparison calculation').option('--pretty', 'use pretty JSON output').option('--fail-percent <threshold>', 'set failed exit code if a percentage threshold is exceeded');
 (0, _commander.program).parse();
 const optionsSchema = (0, _zod.z).object({
     input: (0, _zod.z).string(),
     output: (0, _zod.z).string().optional(),
-    diffWith: (0, _zod.z).string().optional(),
+    compareWith: (0, _zod.z).string().optional(),
     pretty: (0, _zod.z).boolean().optional(),
     failPercent: (0, _zod.z).coerce.number().optional()
 });
@@ -167,18 +167,18 @@ const readAndParse = (0, _readAndParse.readerParser)(ignoreFilter);
     if (options.input) {
         const primaryResult = await readAndParse(options.input);
         if (primaryResult) {
-            if (options.diffWith) {
-                const secondaryResult = await readAndParse(options.diffWith);
+            if (options.compareWith) {
+                const secondaryResult = await readAndParse(options.compareWith);
                 if (secondaryResult) {
-                    const diff = {
+                    const comparison = {
                         total: secondaryResult.total - primaryResult.total,
                         hit: secondaryResult.hit - primaryResult.hit,
                         percent: secondaryResult.percent - primaryResult.percent
                     };
                     await (0, _output.output)({
-                        diff
+                        comparison
                     }, options.output, options.pretty);
-                    (0, _thresholdCheck.thresholdCheck)(options.failPercent, diff);
+                    (0, _thresholdCheck.thresholdCheck)(options.failPercent, comparison);
                 }
             } else {
                 await (0, _output.output)(primaryResult, options.output, options.pretty);
