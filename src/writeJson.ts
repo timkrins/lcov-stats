@@ -1,7 +1,7 @@
 import { toJson } from './toJson';
 import { writeStringToFile } from './writeStringToFile';
 
-export const output = async (
+export const writeJson = async (
   content: any,
   outputFile?: string,
   pretty?: boolean

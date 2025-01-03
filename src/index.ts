@@ -4,9 +4,9 @@ import { program } from 'commander';
 import { z } from 'zod';
 import { fileFilter } from './fileFilter';
 import { TotalStat } from './generateTotalStat';
-import { output } from './output';
 import { readerParser } from './readAndParse';
 import { thresholdCheck } from './thresholdCheck';
+import { writeJson } from './writeJson';
 
 program
   .name('lcov-stats')
@@ -41,7 +41,8 @@ program
     '--compare-with-name <name>',
     'name to represent the compare-with input, ie. "develop" or "feature/add-todos"'
   )
-  .option('--pretty', 'use pretty JSON output', false)
+  .option('--output-json', 'output JSON', true)
+  .option('--use-pretty-json', 'use pretty JSON output', false)
   .option(
     '--fail-percent <threshold>',
     'set failed exit code if a percentage threshold is exceeded'
@@ -55,7 +56,8 @@ const optionsSchema = z.object({
   output: z.string().optional(),
   compareWith: z.string().optional(),
   compareWithName: z.string().optional(),
-  pretty: z.boolean(),
+  outputJson: z.boolean(),
+  usePrettyJson: z.boolean(),
   failPercent: z.coerce.number().optional(),
 });
 
@@ -80,11 +82,13 @@ const readAndParse = readerParser(ignoreFilter);
             hit: secondaryResult.hit - primaryResult.hit,
             percent: secondaryResult.percent - primaryResult.percent,
           };
-          await output(comparison, options.output, options.pretty);
+          if (options.outputJson)
+            await writeJson(comparison, options.output, options.usePrettyJson);
           thresholdCheck(options.failPercent, comparison);
         }
       } else {
-        await output(primaryResult, options.output, options.pretty);
+        if (options.outputJson)
+          await writeJson(primaryResult, options.output, options.usePrettyJson);
         thresholdCheck(options.failPercent, primaryResult);
       }
     }
