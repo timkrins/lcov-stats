@@ -13,6 +13,12 @@ program
   .description('CLI to produce JSON stats from LCOV input')
   .version('1.0.0');
 
+if (!process.stdout.isTTY) {
+  program.configureHelp({
+    helpWidth: 120,
+  });
+}
+
 program
   .requiredOption(
     '-i, --input <filename>',

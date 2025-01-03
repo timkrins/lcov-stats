@@ -151,6 +151,9 @@ var _output = require("./output");
 var _readAndParse = require("./readAndParse");
 var _thresholdCheck = require("./thresholdCheck");
 (0, _commander.program).name('lcov-stats').description('CLI to produce JSON stats from LCOV input').version('1.0.0');
+if (!process.stdout.isTTY) (0, _commander.program).configureHelp({
+    helpWidth: 120
+});
 (0, _commander.program).requiredOption('-i, --input <filename>', 'filename for lcov info input', 'lcov.info').option('-o, --output <filename>', 'filename for JSON output. stdout will be used if no output file is given.').option('--compare-with <filename>', 'filename for another lcov info input to produce a comparison calculation').option('--pretty', 'use pretty JSON output').option('--fail-percent <threshold>', 'set failed exit code if a percentage threshold is exceeded');
 (0, _commander.program).parse();
 const optionsSchema = (0, _zod.z).object({

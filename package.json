@@ -9,6 +9,8 @@
   "scripts": {
     "build": "parcel build --no-cache && chmod +x ./dist/index.js",
     "execute": "yarn build && ./dist/index.js",
+    "update-usage": "yarn build && ./dist/index.js --help > USAGE.md",
+    "update-readme": "yarn update-usage && awk -v start=\"Usage: lcov-stats\" -v end=\"display help for command\" 'BEGIN {while ((getline line < \"USAGE.md\") > 0) usage_content = usage_content line \"\\n\"; close(\"USAGE.md\"); sub(/\\n$/, \"\", usage_content)} $0 ~ start {in_range = 1} !in_range {print} $0 ~ end {print usage_content; in_range = 0}' README.md > README.tmp && mv README.tmp README.md",
     "test": "yarn jest"
   },
   "engines": {
