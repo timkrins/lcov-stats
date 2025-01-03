@@ -6,7 +6,10 @@ import { fileFilter } from './fileFilter';
 import { TotalStat } from './generateTotalStat';
 import { readerParser } from './readAndParse';
 import { thresholdCheck } from './thresholdCheck';
-import { writeJson } from './writeJson';
+import { writeJsonToFile } from './writeJsonToFile';
+import { writeJsonToStdout } from './writeJsonToStdout';
+import { writeMarkdownToFile } from './writeMarkdownToFile';
+import { writeMarkdownToStdout } from './writeMarkdownToStdout';
 
 program
   .name('lcov-stats')
@@ -29,10 +32,16 @@ program
     '--input-name <name>',
     'name to represent the input, ie. "main" or "base"'
   )
+  .option('--output-json-stdout', 'output JSON to stdout', true)
   .option(
-    '-o, --output <filename>',
-    'filename for JSON output. stdout will be used if no output file is given.'
+    '--output-json-stdout-pretty',
+    'use pretty JSON output for stdout',
+    false
   )
+  .option('--output-json-file <filename>', 'output JSON to file')
+  .option('--output-json-file-pretty', 'use pretty JSON output for file', false)
+  .option('--output-markdown-stdout', 'output Markdown to stdout', false)
+  .option('--output-markdown-file <filename>', 'output Markdown to file', false)
   .option(
     '--compare-with <filename>',
     'filename for another lcov info input to produce a comparison calculation'
@@ -41,8 +50,6 @@ program
     '--compare-with-name <name>',
     'name to represent the compare-with input, ie. "develop" or "feature/add-todos"'
   )
-  .option('--output-json', 'output JSON', true)
-  .option('--use-pretty-json', 'use pretty JSON output', false)
   .option(
     '--fail-percent <threshold>',
     'set failed exit code if a percentage threshold is exceeded'
@@ -56,8 +63,12 @@ const optionsSchema = z.object({
   output: z.string().optional(),
   compareWith: z.string().optional(),
   compareWithName: z.string().optional(),
-  outputJson: z.boolean(),
-  usePrettyJson: z.boolean(),
+  outputJsonStdout: z.boolean(),
+  outputJsonStdoutPretty: z.boolean(),
+  outputJsonFile: z.string().optional(),
+  outputJsonFilePretty: z.boolean(),
+  outputMarkdownStdout: z.boolean(),
+  outputMarkdownFile: z.string().optional(),
   failPercent: z.coerce.number().optional(),
 });
 
@@ -67,30 +78,46 @@ const ignoreFilter = fileFilter([]);
 const readAndParse = readerParser(ignoreFilter);
 
 (async () => {
+  var finalResult: TotalStat;
+
   if (options.input) {
     const primaryResult = await readAndParse(options.input, options.inputName);
     if (primaryResult) {
+      finalResult = primaryResult;
+
       if (options.compareWith) {
         const secondaryResult = await readAndParse(
           options.compareWith,
           options.compareWithName
         );
         if (secondaryResult) {
-          const comparison: TotalStat = {
+          finalResult = {
+            isComparison: true,
             name: 'comparison',
             total: secondaryResult.total - primaryResult.total,
             hit: secondaryResult.hit - primaryResult.hit,
             percent: secondaryResult.percent - primaryResult.percent,
           };
-          if (options.outputJson)
-            await writeJson(comparison, options.output, options.usePrettyJson);
-          thresholdCheck(options.failPercent, comparison);
         }
-      } else {
-        if (options.outputJson)
-          await writeJson(primaryResult, options.output, options.usePrettyJson);
-        thresholdCheck(options.failPercent, primaryResult);
       }
+
+      if (options.outputJsonStdout) {
+        await writeJsonToStdout(finalResult, options.outputJsonStdoutPretty);
+      }
+      if (options.outputJsonFile) {
+        await writeJsonToFile(
+          finalResult,
+          options.outputJsonFile,
+          options.outputJsonFilePretty
+        );
+      }
+      if (options.outputMarkdownFile) {
+        await writeMarkdownToFile(finalResult, options.outputMarkdownFile);
+      }
+      if (options.outputMarkdownStdout) {
+        await writeMarkdownToStdout(finalResult);
+      }
+      thresholdCheck(options.failPercent, finalResult);
     }
   }
 })();

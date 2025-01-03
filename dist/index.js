@@ -149,12 +149,15 @@ var _zod = require("zod");
 var _fileFilter = require("./fileFilter");
 var _readAndParse = require("./readAndParse");
 var _thresholdCheck = require("./thresholdCheck");
-var _writeJson = require("./writeJson");
+var _writeJsonToFile = require("./writeJsonToFile");
+var _writeJsonToStdout = require("./writeJsonToStdout");
+var _writeMarkdownToFile = require("./writeMarkdownToFile");
+var _writeMarkdownToStdout = require("./writeMarkdownToStdout");
 (0, _commander.program).name('lcov-stats').description('CLI to produce JSON stats from LCOV input').version('1.0.0');
 if (!process.stdout.isTTY) (0, _commander.program).configureHelp({
     helpWidth: 120
 });
-(0, _commander.program).requiredOption('-i, --input <filename>', 'filename for lcov info input', 'lcov.info').option('--input-name <name>', 'name to represent the input, ie. "main" or "base"').option('-o, --output <filename>', 'filename for JSON output. stdout will be used if no output file is given.').option('--compare-with <filename>', 'filename for another lcov info input to produce a comparison calculation').option('--compare-with-name <name>', 'name to represent the compare-with input, ie. "develop" or "feature/add-todos"').option('--output-json', 'output JSON', true).option('--use-pretty-json', 'use pretty JSON output', false).option('--fail-percent <threshold>', 'set failed exit code if a percentage threshold is exceeded');
+(0, _commander.program).requiredOption('-i, --input <filename>', 'filename for lcov info input', 'lcov.info').option('--input-name <name>', 'name to represent the input, ie. "main" or "base"').option('--output-json-stdout', 'output JSON to stdout', true).option('--output-json-stdout-pretty', 'use pretty JSON output for stdout', false).option('--output-json-file <filename>', 'output JSON to file').option('--output-json-file-pretty', 'use pretty JSON output for file', false).option('--output-markdown-stdout', 'output Markdown to stdout', false).option('--output-markdown-file <filename>', 'output Markdown to file', false).option('--compare-with <filename>', 'filename for another lcov info input to produce a comparison calculation').option('--compare-with-name <name>', 'name to represent the compare-with input, ie. "develop" or "feature/add-todos"').option('--fail-percent <threshold>', 'set failed exit code if a percentage threshold is exceeded');
 (0, _commander.program).parse();
 const optionsSchema = (0, _zod.z).object({
     input: (0, _zod.z).string(),
@@ -162,38 +165,43 @@ const optionsSchema = (0, _zod.z).object({
     output: (0, _zod.z).string().optional(),
     compareWith: (0, _zod.z).string().optional(),
     compareWithName: (0, _zod.z).string().optional(),
-    outputJson: (0, _zod.z).boolean(),
-    usePrettyJson: (0, _zod.z).boolean(),
+    outputJsonStdout: (0, _zod.z).boolean(),
+    outputJsonStdoutPretty: (0, _zod.z).boolean(),
+    outputJsonFile: (0, _zod.z).string().optional(),
+    outputJsonFilePretty: (0, _zod.z).boolean(),
+    outputMarkdownStdout: (0, _zod.z).boolean(),
+    outputMarkdownFile: (0, _zod.z).string().optional(),
     failPercent: (0, _zod.z).coerce.number().optional()
 });
 const options = optionsSchema.parse((0, _commander.program).opts());
 const ignoreFilter = (0, _fileFilter.fileFilter)([]);
 const readAndParse = (0, _readAndParse.readerParser)(ignoreFilter);
 (async ()=>{
+    var finalResult;
     if (options.input) {
         const primaryResult = await readAndParse(options.input, options.inputName);
         if (primaryResult) {
+            finalResult = primaryResult;
             if (options.compareWith) {
                 const secondaryResult = await readAndParse(options.compareWith, options.compareWithName);
-                if (secondaryResult) {
-                    const comparison = {
-                        name: 'comparison',
-                        total: secondaryResult.total - primaryResult.total,
-                        hit: secondaryResult.hit - primaryResult.hit,
-                        percent: secondaryResult.percent - primaryResult.percent
-                    };
-                    if (options.outputJson) await (0, _writeJson.writeJson)(comparison, options.output, options.usePrettyJson);
-                    (0, _thresholdCheck.thresholdCheck)(options.failPercent, comparison);
-                }
-            } else {
-                if (options.outputJson) await (0, _writeJson.writeJson)(primaryResult, options.output, options.usePrettyJson);
-                (0, _thresholdCheck.thresholdCheck)(options.failPercent, primaryResult);
+                if (secondaryResult) finalResult = {
+                    isComparison: true,
+                    name: 'comparison',
+                    total: secondaryResult.total - primaryResult.total,
+                    hit: secondaryResult.hit - primaryResult.hit,
+                    percent: secondaryResult.percent - primaryResult.percent
+                };
             }
+            if (options.outputJsonStdout) await (0, _writeJsonToStdout.writeJsonToStdout)(finalResult, options.outputJsonStdoutPretty);
+            if (options.outputJsonFile) await (0, _writeJsonToFile.writeJsonToFile)(finalResult, options.outputJsonFile, options.outputJsonFilePretty);
+            if (options.outputMarkdownFile) await (0, _writeMarkdownToFile.writeMarkdownToFile)(finalResult, options.outputMarkdownFile);
+            if (options.outputMarkdownStdout) await (0, _writeMarkdownToStdout.writeMarkdownToStdout)(finalResult);
+            (0, _thresholdCheck.thresholdCheck)(options.failPercent, finalResult);
         }
     }
 })();
 
-},{"commander":"2JlDH","zod":"8sluP","./fileFilter":"1CuFs","./readAndParse":"b2Dzo","./thresholdCheck":"acq0C","./writeJson":"5oBBV"}],"2JlDH":[function(require,module,exports,__globalThis) {
+},{"commander":"2JlDH","zod":"8sluP","./fileFilter":"1CuFs","./readAndParse":"b2Dzo","./thresholdCheck":"acq0C","./writeJsonToFile":"41L59","./writeJsonToStdout":"4Qq0K","./writeMarkdownToFile":"kgFIX","./writeMarkdownToStdout":"jYFKL"}],"2JlDH":[function(require,module,exports,__globalThis) {
 const { Argument } = require("4be99e8fb4db63de");
 const { Command } = require("26d11cd4db8fc79b");
 const { CommanderError, InvalidArgumentError } = require("f3119feb7aec3ca9");
@@ -7660,28 +7668,22 @@ function thresholdCheck(failThreshold, stat) {
     }
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"5oBBV":[function(require,module,exports,__globalThis) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"41L59":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "writeJson", ()=>writeJson);
-var _toJson = require("./toJson");
+parcelHelpers.export(exports, "writeJsonToFile", ()=>writeJsonToFile);
+var _generateJson = require("./generateJson");
 var _writeStringToFile = require("./writeStringToFile");
-const writeJson = async (content, outputFile, pretty)=>{
-    const stringContent = (0, _toJson.toJson)(content, pretty);
+const writeJsonToFile = async (content, outputFile, pretty)=>{
+    const stringContent = (0, _generateJson.generateJson)(content, pretty);
     if (outputFile) (0, _writeStringToFile.writeStringToFile)(outputFile, stringContent);
-    else await new Promise((resolve, reject)=>{
-        process.stdout.write(stringContent + '\n', (err)=>{
-            if (err) reject(err);
-            resolve();
-        });
-    });
 };
 
-},{"./toJson":"enVM9","./writeStringToFile":"86LQJ","@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"enVM9":[function(require,module,exports,__globalThis) {
+},{"./generateJson":"4hGqe","./writeStringToFile":"86LQJ","@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"4hGqe":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "toJson", ()=>toJson);
-const toJson = (content, pretty)=>{
+parcelHelpers.export(exports, "generateJson", ()=>generateJson);
+const generateJson = (content, pretty)=>{
     if (pretty) return JSON.stringify(content, null, 2);
     return JSON.stringify(content);
 };
@@ -7696,5 +7698,62 @@ function writeStringToFile(filename, content) {
     return (0, _fs.writeFileSync)((0, _path.resolve)(filename), content);
 }
 
-},{"fs":"fs","path":"path","@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}]},["1QHdX"], "1QHdX", "parcelRequire94c2")
+},{"fs":"fs","path":"path","@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"4Qq0K":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "writeJsonToStdout", ()=>writeJsonToStdout);
+var _generateJson = require("./generateJson");
+var _writeStringToStdout = require("./writeStringToStdout");
+const writeJsonToStdout = async (content, pretty)=>{
+    const stringContent = (0, _generateJson.generateJson)(content, pretty);
+    await (0, _writeStringToStdout.writeStringToStdout)(stringContent);
+};
+
+},{"./generateJson":"4hGqe","./writeStringToStdout":"fiRBH","@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"fiRBH":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "writeStringToStdout", ()=>writeStringToStdout);
+const writeStringToStdout = async (stringContent)=>{
+    await new Promise((resolve, reject)=>{
+        process.stdout.write(stringContent + '\n', (err)=>{
+            if (err) reject(err);
+            resolve();
+        });
+    });
+};
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"kgFIX":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "writeMarkdownToFile", ()=>writeMarkdownToFile);
+var _generateMarkdownFromStat = require("./generateMarkdownFromStat");
+var _writeStringToFile = require("./writeStringToFile");
+const writeMarkdownToFile = async (stat, outputFile)=>{
+    if (outputFile) {
+        const stringContent = (0, _generateMarkdownFromStat.generateMarkdownFromStat)(stat);
+        (0, _writeStringToFile.writeStringToFile)(outputFile, stringContent);
+    }
+};
+
+},{"./generateMarkdownFromStat":"JeaRR","./writeStringToFile":"86LQJ","@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"JeaRR":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "generateMarkdownFromStat", ()=>generateMarkdownFromStat);
+const generateMarkdownFromStat = (content)=>{
+    const stringContent = `${content.name ? `name: ${name}. ` : ''}hit: ${content.hit}. total: ${content.total}. percent: ${content.percent.toFixed(4)}%.`;
+    return stringContent;
+};
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"jYFKL":[function(require,module,exports,__globalThis) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "writeMarkdownToStdout", ()=>writeMarkdownToStdout);
+var _generateMarkdownFromStat = require("./generateMarkdownFromStat");
+var _writeStringToStdout = require("./writeStringToStdout");
+const writeMarkdownToStdout = async (stat)=>{
+    const stringContent = (0, _generateMarkdownFromStat.generateMarkdownFromStat)(stat);
+    await (0, _writeStringToStdout.writeStringToStdout)(stringContent);
+};
+
+},{"./generateMarkdownFromStat":"JeaRR","./writeStringToStdout":"fiRBH","@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}]},["1QHdX"], "1QHdX", "parcelRequire94c2")
 

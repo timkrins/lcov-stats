@@ -2,6 +2,7 @@ import { FileStat } from './generateFileStats';
 
 export interface TotalStat {
   name?: string;
+  isComparison?: boolean;
   total: number;
   hit: number;
   percent: number;
