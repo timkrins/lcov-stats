@@ -26,6 +26,10 @@ program
     'lcov.info'
   )
   .option(
+    '--input-name <name>',
+    'name to represent the input, ie. "main" or "base"'
+  )
+  .option(
     '-o, --output <filename>',
     'filename for JSON output. stdout will be used if no output file is given.'
   )
@@ -33,7 +37,11 @@ program
     '--compare-with <filename>',
     'filename for another lcov info input to produce a comparison calculation'
   )
-  .option('--pretty', 'use pretty JSON output')
+  .option(
+    '--compare-with-name <name>',
+    'name to represent the compare-with input, ie. "develop" or "feature/add-todos"'
+  )
+  .option('--pretty', 'use pretty JSON output', false)
   .option(
     '--fail-percent <threshold>',
     'set failed exit code if a percentage threshold is exceeded'
@@ -43,9 +51,11 @@ program.parse();
 
 const optionsSchema = z.object({
   input: z.string(),
+  inputName: z.string().optional(),
   output: z.string().optional(),
   compareWith: z.string().optional(),
-  pretty: z.boolean().optional(),
+  compareWithName: z.string().optional(),
+  pretty: z.boolean(),
   failPercent: z.coerce.number().optional(),
 });
 
@@ -56,17 +66,21 @@ const readAndParse = readerParser(ignoreFilter);
 
 (async () => {
   if (options.input) {
-    const primaryResult = await readAndParse(options.input);
+    const primaryResult = await readAndParse(options.input, options.inputName);
     if (primaryResult) {
       if (options.compareWith) {
-        const secondaryResult = await readAndParse(options.compareWith);
+        const secondaryResult = await readAndParse(
+          options.compareWith,
+          options.compareWithName
+        );
         if (secondaryResult) {
           const comparison: TotalStat = {
+            name: 'comparison',
             total: secondaryResult.total - primaryResult.total,
             hit: secondaryResult.hit - primaryResult.hit,
             percent: secondaryResult.percent - primaryResult.percent,
           };
-          await output({ comparison }, options.output, options.pretty);
+          await output(comparison, options.output, options.pretty);
           thresholdCheck(options.failPercent, comparison);
         }
       } else {

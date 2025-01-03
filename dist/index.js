@@ -154,13 +154,15 @@ var _thresholdCheck = require("./thresholdCheck");
 if (!process.stdout.isTTY) (0, _commander.program).configureHelp({
     helpWidth: 120
 });
-(0, _commander.program).requiredOption('-i, --input <filename>', 'filename for lcov info input', 'lcov.info').option('-o, --output <filename>', 'filename for JSON output. stdout will be used if no output file is given.').option('--compare-with <filename>', 'filename for another lcov info input to produce a comparison calculation').option('--pretty', 'use pretty JSON output').option('--fail-percent <threshold>', 'set failed exit code if a percentage threshold is exceeded');
+(0, _commander.program).requiredOption('-i, --input <filename>', 'filename for lcov info input', 'lcov.info').option('--input-name <name>', 'name to represent the input, ie. "main" or "base"').option('-o, --output <filename>', 'filename for JSON output. stdout will be used if no output file is given.').option('--compare-with <filename>', 'filename for another lcov info input to produce a comparison calculation').option('--compare-with-name <name>', 'name to represent the compare-with input, ie. "develop" or "feature/add-todos"').option('--pretty', 'use pretty JSON output', false).option('--fail-percent <threshold>', 'set failed exit code if a percentage threshold is exceeded');
 (0, _commander.program).parse();
 const optionsSchema = (0, _zod.z).object({
     input: (0, _zod.z).string(),
+    inputName: (0, _zod.z).string().optional(),
     output: (0, _zod.z).string().optional(),
     compareWith: (0, _zod.z).string().optional(),
-    pretty: (0, _zod.z).boolean().optional(),
+    compareWithName: (0, _zod.z).string().optional(),
+    pretty: (0, _zod.z).boolean(),
     failPercent: (0, _zod.z).coerce.number().optional()
 });
 const options = optionsSchema.parse((0, _commander.program).opts());
@@ -168,19 +170,18 @@ const ignoreFilter = (0, _fileFilter.fileFilter)([]);
 const readAndParse = (0, _readAndParse.readerParser)(ignoreFilter);
 (async ()=>{
     if (options.input) {
-        const primaryResult = await readAndParse(options.input);
+        const primaryResult = await readAndParse(options.input, options.inputName);
         if (primaryResult) {
             if (options.compareWith) {
-                const secondaryResult = await readAndParse(options.compareWith);
+                const secondaryResult = await readAndParse(options.compareWith, options.compareWithName);
                 if (secondaryResult) {
                     const comparison = {
+                        name: 'comparison',
                         total: secondaryResult.total - primaryResult.total,
                         hit: secondaryResult.hit - primaryResult.hit,
                         percent: secondaryResult.percent - primaryResult.percent
                     };
-                    await (0, _output.output)({
-                        comparison
-                    }, options.output, options.pretty);
+                    await (0, _output.output)(comparison, options.output, options.pretty);
                     (0, _thresholdCheck.thresholdCheck)(options.failPercent, comparison);
                 }
             } else {
@@ -7495,13 +7496,13 @@ var _generateTotalStat = require("./generateTotalStat");
 var _parse = require("./parse");
 var _readFileToString = require("./readFileToString");
 function readerParser(ignoreFilter) {
-    return async function(filename) {
+    return async function(filename, name) {
         const lcovInputContent = (0, _readFileToString.readFileToString)(filename);
         let lcovParsed = await (0, _parse.parse)(lcovInputContent);
         if (lcovParsed) {
             if (ignoreFilter) lcovParsed = lcovParsed.filter((p)=>!ignoreFilter(p.file));
             const fileStats = (0, _generateFileStats.generateFileStats)(lcovParsed);
-            const totalStat = (0, _generateTotalStat.generateTotalStat)(fileStats);
+            const totalStat = (0, _generateTotalStat.generateTotalStat)(fileStats, name);
             return totalStat;
         }
     };
@@ -7531,16 +7532,18 @@ function generateFileStats(lcovInput) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "generateTotalStat", ()=>generateTotalStat);
-function generateTotalStat(fileStats) {
+function generateTotalStat(fileStats, name) {
     const values = Object.values(fileStats);
     const total = values.reduce((prev, current)=>prev + current.total, 0);
     const hit = values.reduce((prev, current)=>prev + current.hit, 0);
     const percent = (total > 0 ? hit / total : 1.0) * 100.0;
-    return {
+    const result = {
         total,
         hit,
         percent
     };
+    if (name) result.name = name;
+    return result;
 }
 
 },{"@parcel/transformer-js/src/esmodule-helpers.js":"9rbv5"}],"6TDMF":[function(require,module,exports,__globalThis) {
