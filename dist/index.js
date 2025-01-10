@@ -7740,7 +7740,7 @@ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "generateMarkdownFromStat", ()=>generateMarkdownFromStat);
 const generateMarkdownFromStat = (content)=>{
-    const stringContent = `${content.name ? `name: ${name}. ` : ''}hit: ${content.hit}. total: ${content.total}. percent: ${content.percent.toFixed(4)}%.`;
+    const stringContent = `${content.name ? `name: ${content.name}. ` : ''}hit: ${content.hit}. total: ${content.total}. percent: ${content.percent.toFixed(4)}%.`;
     return stringContent;
 };
 
