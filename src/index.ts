@@ -41,7 +41,7 @@ program
   .option('--output-json-file <filename>', 'output JSON to file')
   .option('--output-json-file-pretty', 'use pretty JSON output for file', false)
   .option('--output-markdown-stdout', 'output Markdown to stdout', false)
-  .option('--output-markdown-file <filename>', 'output Markdown to file', false)
+  .option('--output-markdown-file <filename>', 'output Markdown to file')
   .option(
     '--compare-with <filename>',
     'filename for another lcov info input to produce a comparison calculation'
